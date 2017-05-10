@@ -6,10 +6,14 @@ use Mail;
 use Session;
 use Sentinel;
 use Activation;
+// to je Illuminate\Support\Facades\Storage;
+// ako je Facades onda se moze koristiti bez ovog ispred
+use Storage;
 use App\Http\Requests;
 use Centaur\AuthManager;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\UsersRoot;
 
 class RegistrationController extends Controller
 {
@@ -105,6 +109,25 @@ class RegistrationController extends Controller
             // to "/";  I would prefer they be sent to the login page.
             $result->setRedirectUrl(route('auth.login.form'));
             return $result->dispatch();
+        }
+
+        // Create user root directory
+        // kreiramo ime mape tako da ima brojke i slova a ne specijalne znakove kao email
+        $dir = md5(uniqid());
+        $dirExist = Storage::disk('public')->allDirectories();
+        if(!in_array($dir, $dirExist)) {
+          Storage::disk('public')->makeDirectory($dir);
+
+          // kod createa i updatea prvo se mora instancirati model
+          $users_root = new UsersRoot;
+          $users_root->name = $dir;
+          // kad se napravi aktivacija korisnika u objektu imamo sve podatke o useru ($result)
+          $users_root->user_id = $result->user->id;
+          $users_root->save();
+
+
+        } else {
+          session()->flash('error', 'Map with this name already exists!');
         }
 
         // Ask the user to check their email for the activation link
